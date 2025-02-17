@@ -3,11 +3,18 @@ import cors from 'cors';
 import { connect } from 'mongoose';
 import flashcardRoutes from './routes/flashcards.js';
 import { config } from 'dotenv';
+import morgan from 'morgan';
 
 config()
 const app = express();
 app.use(json());
-app.use(cors());
+
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true
+}));
+
+app.use(morgan('dev'))
 
 // Connect to MongoDB
 connect(process.env.MONGO_URI, {})

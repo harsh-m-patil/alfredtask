@@ -23,7 +23,10 @@ router.get('/', async (req, res) => {
       flashcards
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      status: 'failure',
+      error: error.message
+    });
   }
 });
 
