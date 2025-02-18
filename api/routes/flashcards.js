@@ -1,22 +1,21 @@
-import express from 'express'
-const router = express.Router();
-import Flashcard from '../models/flashcard.js'
+import express from 'express';
+import Flashcard from '../models/flashcard.js';
 
-// POST /flashcards → Add a new flashcard
-router.post('/', async (req, res) => {
-  try {
-    const { question, answer } = req.body;
-    const newCard = await Flashcard.create({ question, answer });
-    res.status(201).json(newCard);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
+const router = express.Router();
 
 // GET /flashcards → Retrieve all flashcards
-router.get('/', async (req, res) => {
+// Optionally filter by "due" if a route parameter is provided (e.g., /flashcards/due)
+router.get('/:due?', async (req, res) => {
+  const { due } = req.params;
+  const filters = {};
+
+  // If "due" is provided in the URL, filter for flashcards that are due on or before now
+  if (due) {
+    filters.nextReviewDate = { $lte: new Date() };
+  }
+
   try {
-    const flashcards = await Flashcard.find({});
+    const flashcards = await Flashcard.find(filters);
     res.json({
       status: 'success',
       results: flashcards.length,
@@ -30,7 +29,18 @@ router.get('/', async (req, res) => {
   }
 });
 
-// PUT /flashcards/:id → Update a flashcard (move to next box or reset to Box 1)
+// POST /flashcards → Add a new flashcard
+router.post('/', async (req, res) => {
+  try {
+    const { question, answer } = req.body;
+    const newCard = await Flashcard.create({ question, answer });
+    res.status(201).json(newCard);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// PUT /flashcards/:id → Update a flashcard (Leitner System logic)
 router.put('/:id', async (req, res) => {
   try {
     const { correct } = req.body;
@@ -40,16 +50,16 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Flashcard not found' });
     }
 
-    // If correct, move to next box; if incorrect, reset to box 1
+    // If correct, move to the next box; if incorrect, reset to box 1
     if (correct) {
-      card.box = card.box + 1;
+      card.box = (card.box + 1) % 3 + 1;
     } else {
       card.box = 1;
     }
 
-    // Calculate the next review date
+    // Simple Leitner-like intervals (example only); adjust as needed
     const now = new Date();
-    const daysToAdd = card.box * 2; // e.g., box 1 = 2 days, box 2 = 4 days, etc.
+    const daysToAdd = card.box * 2;
     card.nextReviewDate = new Date(now.setDate(now.getDate() + daysToAdd));
 
     await card.save();
@@ -72,4 +82,4 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-export default router
+export default router;

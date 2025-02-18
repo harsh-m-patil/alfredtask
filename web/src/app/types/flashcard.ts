@@ -3,4 +3,5 @@ export interface FlashCard {
   question: string
   answer: string
   box?: number
+  nextReviewDate: Date
 }
